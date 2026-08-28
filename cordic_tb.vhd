@@ -14,10 +14,12 @@ architecture Behavioral of tb_cordic is
                   itr: integer:= 16);
         Port ( clk : in STD_LOGIC;
                reset : in STD_LOGIC;
-               mode : in STD_LOGIC;
+               mode : in STD_LOGIC_VECTOR(1 downto 0);
+               linorcir : in STD_LOGIC;
                xin : in signed(n-1 downto 0);
                yin : in signed(n-1 downto 0);
                zin : in signed(n-1 downto 0);
+               cin : in signed(n-1 downto 0);
                xout : out signed(n-1 downto 0);
                yout : out signed(n-1 downto 0);
                zout : out signed(n-1 downto 0));
@@ -26,12 +28,13 @@ architecture Behavioral of tb_cordic is
     
     signal clk   : std_logic := '0';
     signal reset : std_logic := '0';
-    signal mode  : std_logic := '0';
-    
+    signal mode  : std_logic_vector(1 downto 0) := (others => '0');
+    signal linorcir : std_logic := '0';
     
     signal xin   : signed(15 downto 0) := (others => '0');
     signal yin   : signed(15 downto 0) := (others => '0');
     signal zin   : signed(15 downto 0) := (others => '0');
+    signal cin   : signed(15 downto 0) := (others => '0');
     
     signal xout  : signed(15 downto 0);
     signal yout  : signed(15 downto 0);
@@ -49,9 +52,11 @@ begin
             clk   => clk,
             reset => reset,
             mode  => mode,
+            linorcir => linorcir,
             xin   => xin,
             yin   => yin,
             zin   => zin,
+            cin   => cin,
             xout  => xout,
             yout  => yout,
             zout  => zout
@@ -76,16 +81,26 @@ begin
         wait for 10 ns;
 
         
-        --mode <= '0'; 
-        xin  <= to_signed(9949, 16); 
+        --mode <= '0'; --rot
+        --xin  <= to_signed(4096, 16); 
+        --yin  <= to_signed(10240, 16);
+        --zin  <= to_signed(17157, 16);
+
+        --mode <= '1'; --vec
+        --xin  <= to_signed(18989, 16); 
+        --yin  <= to_signed(49746, 16);
+        --zin  <= to_signed(10419, 16); 
+        --mode <= "10";
+        --cin  <= to_signed(8192, 16);
+        --xin  <= to_signed(9949, 16);
+        --yin  <= to_signed(0, 16);
+        --zin  <= to_signed(0, 16);
+        linorcir <= '1'; --linmode
+        mode   <= "00";--rotmode
+        xin  <= to_signed(8192, 16);
+        zin  <= to_signed(8192, 16);
         yin  <= to_signed(0, 16);
-        zin  <= to_signed(8579, 16);
-
-        mode <= '1'; 
-        xin  <= to_signed(8192, 16); 
-        yin  <= to_signed(8192, 16);
-        zin  <= to_signed(0, 16); 
-
+        wait;
 
         wait for 16 * CLK_PERIOD;
 

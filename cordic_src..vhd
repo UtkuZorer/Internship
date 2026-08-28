@@ -37,10 +37,12 @@ entity cordic is
     
     Port ( clk : in STD_LOGIC;
            reset : in STD_LOGIC;
-           mode : in STD_LOGIC;
+           linorcir : in STD_LOGIC;
+           mode : in STD_LOGIC_VECTOR(1 downto 0);
            xin : in signed(n-1 downto 0);
            yin : in signed(n-1 downto 0);
            zin : in signed(n-1 downto 0);
+           cin : in signed(n-1 downto 0);
            xout : out signed(n-1 downto 0);
            yout : out signed(n-1 downto 0);
            zout : out signed(n-1 downto 0));
@@ -65,6 +67,24 @@ constant arctans: angles:=(to_signed(12868, n),
         to_signed(1, n),     
         to_signed(0, n)     
     );
+constant powers: angles:=(
+    to_signed(16384, n), -- 2^-i
+    to_signed(8192, n),  
+    to_signed(4096, n),  
+    to_signed(2048, n),  
+    to_signed(1024, n),  
+    to_signed(512, n),   
+    to_signed(256, n),   
+    to_signed(128, n),   
+    to_signed(64, n),    
+    to_signed(32, n),    
+    to_signed(16, n),    
+    to_signed(8, n),     
+    to_signed(4, n),     
+    to_signed(2, n),     
+    to_signed(1, n),     
+    to_signed(0, n)      
+);
 type registers is array (0 to itr) of signed(n-1 downto 0);
 signal regx: registers;
 signal regy: registers;
@@ -79,14 +99,16 @@ begin
     variable shiftx: signed(n-1 downto 0);
     variable shifty: signed(n-1 downto 0);
     begin
-        if reset = '1' then
+    if reset = '1' then
             regx(i+1)<= (others=>'0');
             regy(i+1)<= (others=>'0');
             regz(i+1)<= (others=>'0');
         elsif rising_edge(clk) then
             shiftx:= shift_right(regx(i),i);
             shifty:= shift_right(regy(i),i);
-            if mode = '0' then
+    if linorcir = '0' then
+        
+            if mode = "00" then
                 if regz(i)(n-1)= '1' then
                     regx(i+1)<= regx(i) + shifty;
                     regy(i+1)<= regy(i) - shiftx;
@@ -95,19 +117,52 @@ begin
                     regx(i+1)<= regx(i) - shifty;
                     regy(i+1)<= regy(i) + shiftx;
                     regz(i+1)<= regz(i) - arctans(i);
-                end if;
-            else
+                end if;                
+            elsif mode = "01" then
                 if regy(i)(n-1) = '0' then
+                    regx(i+1)<= regx(i) - shifty;
+                    regy(i+1)<= regy(i) + shiftx;
+                    regz(i+1)<= regz(i) - arctans(i);
+                else
                     regx(i+1)<= regx(i) + shifty;
                     regy(i+1)<= regy(i) - shiftx;
                     regz(i+1)<= regz(i) + arctans(i);
-                else
-                regx(i+1)<= regx(i) - shifty;
-                regy(i+1)<= regy(i) + shiftx;
-                regz(i+1)<= regz(i) - arctans(i);
                 end if;
+            elsif mode = "10" then
+                if regy(i) < cin then
+                  regx(i+1)<= regx(i) - shifty;
+                  regy(i+1)<= regy(i) + shiftx;
+                  regz(i+1)<= regz(i) + arctans(i);
+                else
+                    regx(i+1)<= regx(i) + shifty;
+                    regy(i+1)<= regy(i) - shiftx;
+                    regz(i+1)<= regz(i) - arctans(i);
+                end if;  
             end if;
-         end if;
+      else
+         if mode = "00" then
+             if regz(i)(n-1) = '1' then
+                 regx(i+1) <= regx(i);
+                 regy(i+1) <= regy(i) - shiftx;
+                 regz(i+1) <= regz(i) + powers(i);
+             else
+                 regx(i+1) <= regx(i);
+                 regy(i+1) <= regy(i) + shiftx;
+                 regz(i+1) <= regz(i) - powers(i);
+             end if;
+          elsif mode = "01" then
+             if regy(i)(n-1) = '1' then
+                 regx(i+1) <= regx(i);
+                 regy(i+1) <= regy(i) + shiftx;
+                 regz(i+1) <= regz(i) - powers(i);
+             else
+                 regx(i+1) <= regx(i);
+                 regy(i+1) <= regy(i) - shiftx;
+                 regz(i+1) <= regz(i) + powers(i);
+             end if;
+          end if;
+      end if;
+  end if;
        end process;
    end generate generator;     
 xout<= regx(itr);
